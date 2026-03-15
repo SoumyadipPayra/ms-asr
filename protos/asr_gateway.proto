@@ -1,0 +1,75 @@
+syntax = "proto3";
+
+package asr_gateway;
+
+service AsrGateway {
+  // Bidirectional streaming RPC for real-time speech recognition.
+  rpc Recognize(stream ClientMessage) returns (stream ServerMessage);
+}
+
+message ClientMessage {
+  oneof message {
+    StartRecognition start = 1;
+    AudioData audio = 2;
+    StopRecognition stop = 3;
+  }
+}
+
+message StartRecognition {
+  AudioConfig config = 1;
+  string session_id = 2;  // Optional; server generates one if empty.
+}
+
+message AudioConfig {
+  int32 sample_rate = 1;   // e.g. 16000
+  string encoding = 2;     // "pcm_s16le" | "pcm_f32le"
+  int32 channels = 3;      // 1 (mono) expected
+}
+
+message AudioData {
+  bytes audio = 1;
+}
+
+message StopRecognition {}
+
+message ServerMessage {
+  oneof message {
+    RecognitionStarted started = 1;
+    Transcript transcript = 2;
+    EndOfUtterance end_of_utterance = 3;
+    RecognitionStopped stopped = 4;
+    Error error = 5;
+  }
+}
+
+message RecognitionStarted {
+  string session_id = 1;
+}
+
+message Transcript {
+  string text = 1;
+  repeated WordInfo words = 2;
+  double start_time = 3;
+  double end_time = 4;
+  int32 utterance_index = 5;
+}
+
+message WordInfo {
+  string word = 1;
+  double start_time = 2;
+  double end_time = 3;
+  float confidence = 4;
+}
+
+message EndOfUtterance {
+  int32 utterance_index = 1;
+}
+
+message RecognitionStopped {
+  string session_id = 1;
+}
+
+message Error {
+  int32 code = 1;
+  string message = 2;
+}

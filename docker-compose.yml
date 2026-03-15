@@ -1,0 +1,56 @@
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  asr-model:
+    build:
+      context: .
+      dockerfile: ms-asr-model/Dockerfile
+    ports:
+      - "50052:50052"
+    environment:
+      - ASR_MODEL_GRPC_HOST=0.0.0.0
+      - ASR_MODEL_GRPC_PORT=50052
+      - ASR_MODEL_WHISPER_MODEL_SIZE=base
+      - ASR_MODEL_WHISPER_DEVICE=cpu
+      - ASR_MODEL_WHISPER_COMPUTE_TYPE=int8
+    volumes:
+      - model-cache:/root/.cache
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  asr-gateway:
+    build:
+      context: .
+      dockerfile: ms-asr-gateway/Dockerfile
+    ports:
+      - "50051:50051"
+      - "8765:8765"
+    environment:
+      - ASR_GATEWAY_GRPC_HOST=0.0.0.0
+      - ASR_GATEWAY_GRPC_PORT=50051
+      - ASR_GATEWAY_WS_HOST=0.0.0.0
+      - ASR_GATEWAY_WS_PORT=8765
+      - ASR_GATEWAY_REDIS_URL=redis://redis:6379/0
+      - ASR_GATEWAY_ASR_MODEL_HOST=asr-model
+      - ASR_GATEWAY_ASR_MODEL_PORT=50052
+    depends_on:
+      redis:
+        condition: service_healthy
+      asr-model:
+        condition: service_started
+
+volumes:
+  redis-data:
+  model-cache:

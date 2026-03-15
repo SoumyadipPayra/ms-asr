@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.venv/
+.env
+*.log
+
+# Generated proto stubs (regenerate with protos/generate.sh)
+protos/generated/
+.claude/

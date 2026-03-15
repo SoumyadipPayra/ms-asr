@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package asr_model;
+
+service AsrModel {
+  // Unary RPC: transcribe a chunk of audio.
+  rpc Transcribe(TranscribeRequest) returns (TranscribeResponse);
+}
+
+message TranscribeRequest {
+  bytes audio = 1;
+  int32 sample_rate = 2;   // e.g. 16000
+  string language = 3;     // ISO 639-1 code, default "en"
+}
+
+message TranscribeResponse {
+  string text = 1;
+  repeated WordInfo words = 2;
+  double duration = 3;     // Audio duration in seconds
+  string language = 4;     // Detected or specified language
+}
+
+message WordInfo {
+  string word = 1;
+  double start_time = 2;
+  double end_time = 3;
+  float confidence = 4;
+}
