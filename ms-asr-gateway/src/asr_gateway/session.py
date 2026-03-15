@@ -95,3 +95,9 @@ class Session:
     def join_processing_thread(self, timeout: float = 10.0) -> None:
         if self._processing_thread is not None and self._processing_thread.is_alive():
             self._processing_thread.join(timeout=timeout)
+            if self._processing_thread.is_alive():
+                logger.warning(
+                    "Processing thread for session %s did not stop within %.1fs",
+                    self.session_id,
+                    timeout,
+                )

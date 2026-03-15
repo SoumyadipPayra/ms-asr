@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     default_encoding: str = "pcm_s16le"
     default_channels: int = 1
 
+    # Language
+    default_language: str = "en"  # ISO 639-1 code
+
     model_config = {"env_prefix": "ASR_GATEWAY_"}
 
 

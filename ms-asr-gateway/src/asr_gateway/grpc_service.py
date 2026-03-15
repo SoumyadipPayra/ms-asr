@@ -121,6 +121,8 @@ class AsrGatewayServicer(asr_gateway_pb2_grpc.AsrGatewayServicer):
             logger.exception("Error in Recognize stream")
             if session is not None:
                 session.stop()
+                session.join_processing_thread(timeout=15.0)
+                result_queue.put(None)
                 audio_store.cleanup_session(session.session_id)
             yield _error_message(500, "Internal server error")
 

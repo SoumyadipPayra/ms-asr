@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import signal
 import sys
 from concurrent import futures
 
@@ -32,18 +33,27 @@ logger = logging.getLogger(__name__)
 
 
 async def _run_ws_server() -> None:
-    """Start the WebSocket server."""
+    """Start the WebSocket server. Shuts down cleanly on SIGTERM/SIGINT."""
+    loop = asyncio.get_running_loop()
+    stop = loop.create_future()
+
+    for sig in (signal.SIGTERM, signal.SIGINT):
+        loop.add_signal_handler(sig, stop.set_result, None)
+
     async with websockets.serve(
         ws_handler,
         settings.ws_host,
         settings.ws_port,
-    ):
+    ) as server:
         logger.info(
             "WebSocket server listening on ws://%s:%d",
             settings.ws_host,
             settings.ws_port,
         )
-        await asyncio.Future()  # run forever
+        await stop
+        logger.info("Shutting down WebSocket server, closing connections...")
+        server.close()
+        await server.wait_closed()
 
 
 def _run_grpc_server() -> grpc.Server:
@@ -82,6 +92,7 @@ def main() -> None:
     finally:
         grpc_server.stop(grace=5)
         asr_client.close()
+        audio_store.close()
 
 
 if __name__ == "__main__":

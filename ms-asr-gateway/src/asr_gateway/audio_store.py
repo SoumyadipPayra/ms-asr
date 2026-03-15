@@ -129,6 +129,13 @@ class AudioStore:
         self.client.delete(key)
         logger.debug("Cleaned up stream for session %s", session_id)
 
+    def close(self) -> None:
+        """Close the Redis connection."""
+        if self._redis is not None:
+            self._redis.close()
+            self._redis = None
+            logger.info("Redis connection closed")
+
 
 # Singleton
 audio_store = AudioStore()

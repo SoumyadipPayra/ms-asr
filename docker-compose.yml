@@ -22,8 +22,16 @@ services:
       - ASR_MODEL_GRPC_HOST=0.0.0.0
       - ASR_MODEL_GRPC_PORT=50052
       - ASR_MODEL_WHISPER_MODEL_SIZE=base
-      - ASR_MODEL_WHISPER_DEVICE=cpu
-      - ASR_MODEL_WHISPER_COMPUTE_TYPE=int8
+      - ASR_MODEL_WHISPER_DEVICE=cuda
+      - ASR_MODEL_WHISPER_COMPUTE_TYPE=int8_float16
+      - ASR_MODEL_DEFAULT_LANGUAGE=en
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
     volumes:
       - model-cache:/root/.cache
     depends_on:
@@ -45,6 +53,7 @@ services:
       - ASR_GATEWAY_REDIS_URL=redis://redis:6379/0
       - ASR_GATEWAY_ASR_MODEL_HOST=asr-model
       - ASR_GATEWAY_ASR_MODEL_PORT=50052
+      - ASR_GATEWAY_DEFAULT_LANGUAGE=en
     depends_on:
       redis:
         condition: service_healthy

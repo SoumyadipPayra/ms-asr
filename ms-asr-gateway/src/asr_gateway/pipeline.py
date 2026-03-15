@@ -9,6 +9,7 @@ from typing import Any, Callable
 from asr_gateway.asr_client import asr_client
 from asr_gateway.audio_chunker import AudioChunker, BYTES_PER_SAMPLE
 from asr_gateway.audio_store import audio_store
+from asr_gateway.config import settings
 from asr_gateway.post_processor import post_process
 from asr_gateway.session import Session, SessionState
 
@@ -86,6 +87,13 @@ def processing_thread(
     except Exception:
         logger.exception("Processing thread error for session %s", session_id)
     finally:
+        # Ack any remaining entries so they don't stay in the pending list
+        if pending_entry_ids:
+            try:
+                audio_store.ack(session_id, *pending_entry_ids)
+                pending_entry_ids.clear()
+            except Exception:
+                logger.warning("Failed to ack remaining entries for session %s", session_id)
         logger.info("Processing thread exiting for session %s", session_id)
 
 
@@ -102,7 +110,7 @@ def _process_segment(
         result = asr_client.transcribe(
             audio=segment.audio,
             sample_rate=session.config.sample_rate,
-            language="en",
+            language=settings.default_language,
         )
     except Exception:
         logger.exception("ASR transcription failed for session %s", session.session_id)
@@ -114,6 +122,7 @@ def _process_segment(
     result = post_process(result, audio_duration=audio_duration)
 
     if result["text"]:
+        logger.info("Transcript [%s]: %s", session.session_id[:8], result["text"])
         utterance_idx = session.next_utterance()
         transcript = TranscriptResult(
             text=result["text"],
